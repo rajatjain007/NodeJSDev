@@ -21,7 +21,7 @@ var Message = mongoose.model('Message',{
 })
 
 var messages = []
-//Gettting messages
+//Getting messages
 app.get('/messages',(req,res)=>{
     Message.find({},(err,messages)=>{
         if(err){
@@ -31,26 +31,38 @@ app.get('/messages',(req,res)=>{
     })
 })
 
+//Getting user specific messages
+app.get('/messages/:user',(req,res)=>{
+    var user = req.params.user
+    Message.find({name:user},(err,messages)=>{
+        if(err){
+            sendStatus(500);
+        }
+        res.send(messages);
+    })
+})
+
 //Posting messages
 app.post('/messages',async (req,res)=>{
-    var message = new Message(req.body)
+    try {
+        var message = new Message(req.body)
 
-    var savedMessage = await message.save();
-    console.log('saved');
-    var censored = await Message.findOne({message:'badword'})
-    if(censored){
-        await Message.deleteOne({_id:censored._id})
+        var savedMessage = await message.save();
+        console.log('saved');
+        var censored = await Message.findOne({message:'badword'})
+        if(censored){
+            await Message.deleteOne({_id:censored._id})
+        }
+        else{
+            io.emit('message',req.body);
+        }
+        
+    } catch (error) {
+        res.sendStatus(500);
+        console.error(error) 
+    } finally{
+        //console.log('message not posted')
     }
-    else{
-        io.emit('message',req.body);
-    }
-
-    //messages.push(req.body);
-    // res.sendStatus(200);
-    // .catch((err)=>{
-    //     res.sendStatus(500);
-    //     return console.error(err)
-    // })
 })
 
 
